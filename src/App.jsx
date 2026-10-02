@@ -110,8 +110,30 @@ function App() {
 
   function handleContact(event) {
     event.preventDefault()
-    setSent(true)
+
+    const formData = new FormData(event.currentTarget)
+
+    const message = {
+      firstName: formData.get('firstName'),
+      lastName: formData.get('lastName'),
+      phone: formData.get('phone'),
+      email: formData.get('email'),
+      message: formData.get('message'),
+      submittedAt: new Date().toISOString(),
+    }
+
+    // This demo stores submissions in the visitor's browser only.
+    const previousMessages = JSON.parse(
+      localStorage.getItem('ditMessages') || '[]'
+    )
+
+    localStorage.setItem(
+      'ditMessages',
+      JSON.stringify([...previousMessages, message])
+    )
+
     event.currentTarget.reset()
+    setSent(true)
     navigate('Home')
   }
 
@@ -663,9 +685,8 @@ function App() {
                 </button>
 
                 <p className="small-note">
-                  Demo form: submitting returns you to
-                  the homepage. Messages are not emailed
-                  or stored.
+                  Demo form: messages are saved in this browser
+                  only. Submitting returns you to the homepage.
                 </p>
               </form>
             </div>
@@ -714,7 +735,7 @@ function App() {
           className="form-notice"
           role="status"
         >
-          Demo form submitted. No message was sent.
+          Message saved in this browser. Thank you!
 
           <button
             onClick={() => setSent(false)}
