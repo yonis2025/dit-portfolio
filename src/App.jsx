@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import './App.css'
 
+const API_URL = 'https://yonis-portfolio-api.onrender.com'
+
 const pages = [
   'Home',
   'About Me',
@@ -101,6 +103,8 @@ function App() {
   const [page, setPage] = useState('Home')
   const [menuOpen, setMenuOpen] = useState(false)
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [contactError, setContactError] = useState('')
 
   function navigate(nextPage) {
     setPage(nextPage)
@@ -108,33 +112,47 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function handleContact(event) {
+  async function handleContact(event) {
     event.preventDefault()
 
-    const formData = new FormData(event.currentTarget)
+    if (sending) return
 
-    const message = {
-      firstName: formData.get('firstName'),
-      lastName: formData.get('lastName'),
-      phone: formData.get('phone'),
-      email: formData.get('email'),
-      message: formData.get('message'),
-      submittedAt: new Date().toISOString(),
+    const form = event.currentTarget
+    const formData = new FormData(form)
+
+    const contact = {
+      firstname: String(formData.get('firstName') || '').trim(),
+      lastname: String(formData.get('lastName') || '').trim(),
+      email: String(formData.get('email') || '').trim(),
     }
 
-    // This demo stores submissions in the visitor's browser only.
-    const previousMessages = JSON.parse(
-      localStorage.getItem('ditMessages') || '[]'
-    )
+    setSending(true)
+    setContactError('')
 
-    localStorage.setItem(
-      'ditMessages',
-      JSON.stringify([...previousMessages, message])
-    )
+    try {
+      const response = await fetch(`${API_URL}/api/contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contact),
+      })
 
-    event.currentTarget.reset()
-    setSent(true)
-    navigate('Home')
+      if (!response.ok) {
+        throw new Error('Contact submission failed')
+      }
+
+      form.reset()
+      setSent(true)
+      navigate('Home')
+    } catch (error) {
+      console.error('Contact submission error:', error)
+      setContactError(
+        'Unable to submit your contact information. Please try again.'
+      )
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -628,6 +646,7 @@ function App() {
                     <input
                       name="firstName"
                       required
+                      maxLength={100}
                       placeholder="First name"
                     />
                   </label>
@@ -638,6 +657,7 @@ function App() {
                     <input
                       name="lastName"
                       required
+                      maxLength={100}
                       placeholder="Last name"
                     />
                   </label>
@@ -661,6 +681,7 @@ function App() {
                       name="email"
                       type="email"
                       required
+                      maxLength={254}
                       placeholder="Email address"
                     />
                   </label>
@@ -671,7 +692,6 @@ function App() {
 
                   <textarea
                     name="message"
-                    required
                     rows="6"
                     placeholder="Tell me about your idea..."
                   />
@@ -680,13 +700,22 @@ function App() {
                 <button
                   className="button button-dark"
                   type="submit"
+                  disabled={sending}
                 >
-                  Submit message <span>↗</span>
+                  {sending ? 'Submitting...' : 'Submit contact'}
+                  <span>↗</span>
                 </button>
 
+                {contactError && (
+                  <p role="alert" className="small-note">
+                    {contactError}
+                  </p>
+                )}
+
                 <p className="small-note">
-                  Demo form: messages are saved in this browser
-                  only. Submitting returns you to the homepage.
+                  This form currently submits your name and
+                  email address to our database. Phone numbers
+                  and message text are not saved yet.
                 </p>
               </form>
             </div>
@@ -731,11 +760,8 @@ function App() {
       </footer>
 
       {sent && page === 'Home' && (
-        <div
-          className="form-notice"
-          role="status"
-        >
-          Message saved in this browser. Thank you!
+        <div className="form-notice" role="status">
+          Contact information submitted successfully. Thank you!
 
           <button
             onClick={() => setSent(false)}
