@@ -6,7 +6,35 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// JWT authentication required for every contact route
+// Public: visitors can submit the contact form
+router.post("/", async (req, res) => {
+  try {
+    const { firstname, lastname, email } = req.body;
+
+    if (!firstname?.trim() || !lastname?.trim() || !email?.trim()) {
+      return res.status(400).json({
+        message: "First name, last name, and email are required"
+      });
+    }
+
+    const contact = await Contact.create({
+      firstname: firstname.trim(),
+      lastname: lastname.trim(),
+      email: email.trim().toLowerCase()
+    });
+
+    res.status(201).json({
+      message: "Contact submitted successfully",
+      contact
+    });
+  } catch (error) {
+    res.status(400).json({
+      message: "Failed to submit contact"
+    });
+  }
+});
+
+// Require JWT for all remaining contact routes
 router.use(protect);
 
 // GET ALL CONTACTS
@@ -46,31 +74,6 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// CREATE CONTACT
-router.post("/", async (req, res) => {
-  try {
-    const { firstname, lastname, email } = req.body;
-
-    if (!firstname || !lastname || !email) {
-      return res.status(400).json({
-        message: "Firstname, lastname, and email are required"
-      });
-    }
-
-    const contact = await Contact.create({
-      firstname,
-      lastname,
-      email
-    });
-
-    res.status(201).json(contact);
-  } catch (error) {
-    res.status(400).json({
-      message: "Failed to create contact"
-    });
-  }
-});
-
 // UPDATE CONTACT
 router.put("/:id", async (req, res) => {
   try {
@@ -80,29 +83,10 @@ router.put("/:id", async (req, res) => {
       });
     }
 
-    const { firstname, lastname, email } = req.body;
-
-    const updates = {};
-
-    if (firstname !== undefined) {
-      updates.firstname = firstname;
-    }
-
-    if (lastname !== undefined) {
-      updates.lastname = lastname;
-    }
-
-    if (email !== undefined) {
-      updates.email = email;
-    }
-
     const contact = await Contact.findByIdAndUpdate(
       req.params.id,
-      updates,
-      {
-        new: true,
-        runValidators: true
-      }
+      req.body,
+      { new: true, runValidators: true }
     );
 
     if (!contact) {
@@ -128,9 +112,7 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-    const contact = await Contact.findByIdAndDelete(
-      req.params.id
-    );
+    const contact = await Contact.findByIdAndDelete(req.params.id);
 
     if (!contact) {
       return res.status(404).json({
