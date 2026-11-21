@@ -28,3 +28,13 @@ export const protect = (req, res, next) => {
     });
   }
 };
+
+// Check the database role rather than trusting a role supplied by the client.
+export const adminOnly = async (req, res, next) => {
+  try {
+    const { default: User } = await import("../models/User.js");
+    const user = await User.findById(req.user.id);
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Administrator access required" });
+    next();
+  } catch { res.status(401).json({ message: "Authentication required" }); }
+};

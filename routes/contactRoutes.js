@@ -2,7 +2,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import Contact from "../models/Contact.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -35,7 +35,7 @@ router.post("/", async (req, res) => {
 });
 
 // Require JWT for all remaining contact routes
-router.use(protect);
+router.use(protect, adminOnly);
 
 // GET ALL CONTACTS
 router.get("/", async (req, res) => {

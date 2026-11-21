@@ -25,3 +25,7 @@ dist-ssr
 .env
 node_modules/
 dist/
+
+assignment3-backups/
+.env
+.env.local

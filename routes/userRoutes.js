@@ -3,7 +3,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import User from "../models/User.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -11,6 +11,7 @@ const publicUser = (user) => ({
   id: user._id,
   name: user.name,
   email: user.email,
+  role: user.role || "user",
   createdAt: user.createdAt,
   updatedAt: user.updatedAt
 });
@@ -104,6 +105,19 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// Compatibility with the assignment's /auth/signin endpoint.
+router.post("/signin", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (typeof email !== "string" || typeof password !== "string") return res.status(400).json({ message: "Email and password are required" });
+    const user = await User.findOne({ email: email.trim().toLowerCase() }).select("+password");
+    if (!user || !(await user.comparePassword(password))) return res.status(401).json({ message: "Invalid email or password" });
+    res.json({ message: "Login successful", user: publicUser(user), token: createToken(user) });
+  } catch { res.status(500).json({ message: "Login failed" }); }
+});
+
+router.get("/signout", (req, res) => res.json({ message: "Sign out by removing the JWT from the client" }));
+
 // LOGOUT
 // JWT logout requires the client to discard its token.
 // The token remains valid until expiration unless revoked.
@@ -114,7 +128,7 @@ router.post("/logout", protect, (req, res) => {
 });
 
 // GET ALL USERS
-router.get("/", protect, async (req, res) => {
+router.get("/", protect, adminOnly, async (req, res) => {
   try {
     const users = await User.find().select("-password");
     res.json(users);
@@ -157,7 +171,7 @@ router.get("/:id", protect, async (req, res) => {
 });
 
 // CREATE USER
-router.post("/", protect, async (req, res) => {
+router.post("/", protect, adminOnly, async (req, res) => {
   try {
     const { name, email, password } = req.body;
 

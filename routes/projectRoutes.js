@@ -2,12 +2,16 @@
 import express from "express";
 import mongoose from "mongoose";
 import Project from "../models/Project.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // Require JWT authentication for all project routes
-router.use(protect);
+// Reading is public; writing is restricted to administrators.
+router.use((req, res, next) => {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+  return protect(req, res, () => adminOnly(req, res, next));
+});
 
 // GET ALL PROJECTS
 router.get("/", async (req, res) => {

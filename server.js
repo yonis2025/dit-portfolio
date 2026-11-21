@@ -43,6 +43,7 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/qualifications", qualificationRoutes);
 app.use("/api/users", userRoutes);
+app.use("/auth", userRoutes);
 
 async function startServer() {
   try {
